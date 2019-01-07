@@ -64,7 +64,7 @@ cc.Class({
         this.gearNum = 18;
         this.defaultAngle = 360 / 18 / 2; //修正默认角度
         this.gearAngle = 360 / this.gearNum; //每个齿轮的角度
-        this.wheelSp.node.rotation = this.defaultAngle;
+        this.wheelSp.node.angle = this.defaultAngle;
         this.finalAngle = 0; //最终结果指定的角度
         this.effectFlag = 0; //用于音效播放
 
@@ -93,14 +93,17 @@ cc.Class({
         // cc.log('....start');
     },
 
-    caculateFinalAngle: function caculateFinalAngle(targetID) {
-        this.finalAngle = 360 - this.targetID * this.gearAngle + this.defaultAngle;
-        if (this.springback) {
-            this.finalAngle += this.gearAngle;
-        }
-    },
+    // caculateFinalAngle: function (targetID) {
+    //     this.finalAngle = this.targetID * this.gearAngle + this.defaultAngle - 360;
+    //     if (this.springback) {
+    //         this.finalAngle += this.gearAngle;
+    //     }
+    // },
+
     editBoxDidBegin: function editBoxDidBegin(edit) {},
+
     editBoxDidChanged: function editBoxDidChanged(text) {},
+
     editBoxDidEndEditing: function editBoxDidEndEditing(edit) {
         var res = parseInt(edit.string);
         if (isNaN(res)) {
@@ -127,14 +130,18 @@ cc.Class({
             // cc.audioEngine.pauseEffect(this.audioID);
 
             // this.audioID = cc.audioEngine.playEffect(this.effectAudio,false);
-            this.audioID = cc.audioEngine.playEffect(cc.url.raw('resources/Sound/game_turntable.mp3'));
-            this.effectFlag = 0;
+            var self = this;
+            cc.loader.loadRes("Sound/game_turntable", cc.AudioClip, function (err, clip) {
+                self.audioID = cc.audioEngine.playEffect(clip);self.effectFlag = 0;
+            });
+            // this.audioID = cc.audioEngine.playEffect(cc.url.raw('resources/Sound/game_turntable.mp3'));
+            // this.effectFlag = 0;
         }
 
         if (this.wheelState == 1) {
             // cc.log('....加速,speed:' + this.curSpeed);
             this.spinTime += dt;
-            this.wheelSp.node.rotation = this.wheelSp.node.rotation + this.curSpeed;
+            this.wheelSp.node.angle = this.wheelSp.node.angle + this.curSpeed;
             if (this.curSpeed <= this.maxSpeed) {
                 this.curSpeed += this.acc;
             } else {
@@ -143,25 +150,26 @@ cc.Class({
                 }
                 // cc.log('....开始减速');
                 //设置目标角度
-                this.finalAngle = 360 - this.targetID * this.gearAngle + this.defaultAngle;
+                this.finalAngle = this.targetID * this.gearAngle - this.defaultAngle;
                 this.maxSpeed = this.curSpeed;
                 if (this.springback) {
                     this.finalAngle += this.gearAngle;
                 }
-                this.wheelSp.node.rotation = this.finalAngle;
+                cc.log("this.finalAngle:" + this.finalAngle);
+                this.wheelSp.node.angle = this.finalAngle;
                 this.wheelState = 2;
             }
         } else if (this.wheelState == 2) {
             // cc.log('......减速');
-            var curRo = this.wheelSp.node.rotation; //应该等于finalAngle
+            var curRo = this.wheelSp.node.angle; //应该等于finalAngle
             var hadRo = curRo - this.finalAngle;
             this.curSpeed = this.maxSpeed * ((this.decAngle - hadRo) / this.decAngle) + 0.2;
-            this.wheelSp.node.rotation = curRo + this.curSpeed;
+            this.wheelSp.node.angle = curRo + this.curSpeed;
 
             if (this.decAngle - hadRo <= 0) {
                 // cc.log('....停止');
                 this.wheelState = 0;
-                this.wheelSp.node.rotation = this.finalAngle;
+                this.wheelSp.node.angle = this.finalAngle;
                 if (this.springback) {
                     //倒转一个齿轮
                     // var act = new cc.rotateBy(0.6, -this.gearAngle);
